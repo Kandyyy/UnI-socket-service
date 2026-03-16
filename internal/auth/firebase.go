@@ -29,12 +29,15 @@ type FirebaseAuth struct {
 func NewFirebaseAuth(ctx context.Context) (*FirebaseAuth, error) {
 	var opts []option.ClientOption
 
-	// Check for local serviceAccount.json as a fallback for local dev.
-	if os.Getenv("GOOGLE_APPLICATION_CREDENTIALS") == "" {
-		if _, err := os.Stat("serviceAccount.json"); err == nil {
-			log.Println("Using local serviceAccount.json for Firebase credentials")
-			opts = append(opts, option.WithCredentialsFile("serviceAccount.json"))
-		}
+	// 1. Use FIREBASE_CREDENTIALS env variable (recommended for Render)
+	credJSON := os.Getenv("FIREBASE_CREDENTIALS")
+	if credJSON != "" {
+		log.Println("Using Firebase credentials from FIREBASE_CREDENTIALS env variable")
+		opts = append(opts, option.WithCredentialsJSON([]byte(credJSON)))
+	} else if _, err := os.Stat("serviceAccount.json"); err == nil {
+		// 2. Fallback for local development
+		log.Println("Using local serviceAccount.json for Firebase credentials")
+		opts = append(opts, option.WithCredentialsFile("serviceAccount.json"))
 	}
 
 	app, err := firebase.NewApp(ctx, nil, opts...)
